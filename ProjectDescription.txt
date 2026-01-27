@@ -1,0 +1,28 @@
+Currency Arbitrage Optimization using QAOA in Qiskit
+---------------------------------------------------
+
+This project models currency arbitrage detection as a Quadratic Unconstrained Binary Optimization (QUBO) problem and solves it using the Quantum Approximate Optimization Algorithm (QAOA) implemented in Qiskit.
+
+Currencies are represented as nodes in a directed graph, with exchange rates as weighted edges. The objective is to identify profitable cycles where the product of exchange rates exceeds one. By applying the negative logarithm of exchange rates, the multiplicative condition is transformed into an additive optimization problem suitable for QUBO formulation.
+
+Constraints:
+- Each currency must have exactly one incoming edge.
+- Each currency must have exactly one outgoing edge.
+These are enforced via quadratic penalty terms.
+
+Workflow:
+1. Load dataset from Data/Data-sheet.csv.
+2. Build mapping table for qubits ↔ currency exchanges.
+3. Formulate QUBO and convert to Ising Hamiltonian.
+4. Execute QAOA in Qiskit using Sampler and parameterized circuits.
+5. Validate results with classical algorithms (Bellman-Ford, brute-force).
+
+Results:
+- Classical Bellman-Ford detected arbitrage cycle USD → CAD → EUR → USD with ~1.44% profit.
+- Fee sensitivity analysis showed break-even per-trade fee ≈ 0.476%.
+- QAOA sampling produced low-energy bitstrings consistent with valid cycles.
+
+Significance:
+This project demonstrates that Qiskit-based QAOA can faithfully model currency arbitrage as a QUBO problem and reproduce classical results. While classical solvers remain efficient for small cases, QAOA provides a scalable and interpretable quantum alternative.
+
+Author: Bhuvanesh Kumar K
