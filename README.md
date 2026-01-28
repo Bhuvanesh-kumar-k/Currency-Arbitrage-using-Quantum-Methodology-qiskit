@@ -6,7 +6,7 @@ This project models **currency arbitrage detection** as a **Quadratic Unconstrai
 Currencies are represented as nodes in a directed graph and exchange rates as directed, weighted edges. The goal is to find a cycle whose product of rates is greater than 1 (profitable arbitrage). The multiplicative objective is converted into an additive one using the transformation `-log(rate)`.
 
 ## Authors
-- Saranya S (2577421)
+- Saranya Sundararajan (2577421)
 - Bhuvanesh Kumar (1844341)
 - Santhossh J U (1982102)
 - Mohammad Yaseen (2160066)

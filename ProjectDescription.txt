@@ -26,8 +26,8 @@ Significance:
 This project demonstrates that Qiskit-based QAOA can faithfully model currency arbitrage as a QUBO problem and reproduce classical results. While classical solvers remain efficient for small cases, QAOA provides a scalable and interpretable quantum alternative.
 
 Authors: 
-Saranya S (2577421)
-Bhuvanesh Kumar K (1844341)
+Saranya Sundararajan (2577421)
+Bhuvanesh Kumar (1844341)
 Santhossh J U (1982102)
 Mohammad Yaseen (2160066)
 Gowthaman A (1969311)
