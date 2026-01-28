@@ -85,5 +85,8 @@ When executed you should see:
 
 Authors
 -------
-Bhuvanesh Kumar
+Bhuvanesh Kumar (1844341)
+Santhossh J U (1982102)
+Mohammad Yaseen (2160066)
+Gowthaman A (1969311)
 

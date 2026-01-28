@@ -7,6 +7,9 @@ Currencies are represented as nodes in a directed graph and exchange rates as di
 
 ## Authors
 - Bhuvanesh Kumar (1844341)
+- Santhossh J U (1982102)
+- Mohammad Yaseen (2160066)
+- Gowthaman A (1969311)
 
 
 ## Repository structure
