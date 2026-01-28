@@ -1,0 +1,231 @@
+Currency Arbitrage Optimization using QAOA in Qiskit
+and Comparative Study with Classical Baselines
+
+Authors:
+- Saranya Sundararajan (2577421)
+- Bhuvanesh Kumar (1844341)
+- Santhossh J U (1982102)
+- Mohammad Yaseen (2160066)
+- Gowthaman A (1969311)
+
+Date: January 2026
+
+
+Abstract
+
+This project formulates currency arbitrage detection as a Quadratic Unconstrained Binary Optimization (QUBO)
+problem and solves it using the Quantum Approximate Optimization Algorithm (QAOA) implemented in Qiskit.
+Exchange rates are provided as a square matrix and treated as a directed weighted graph (row currency ->
+column currency). A profitable arbitrage corresponds to a directed cycle whose product of exchange rates is
+greater than 1.
+
+To make the objective QUBO-friendly, the multiplicative product of rates is converted to an additive objective
+using the transformation -log(rate). We then build a position-based (N, L) fixed cycle-length QUBO (N = number
+of currencies, L = trading cycle length), convert it to an Ising Hamiltonian, and apply a QAOA workflow that
+matches the team lead’s procedure: start in superposition, apply cost and mixer layers, sample, tune with a
+classical optimizer, and pick a winner from feasible samples.
+
+The implementation includes feasibility validation (one currency per position, no repeated currencies, and no
+invalid zero-rate transitions), classical brute-force baselines for small instances, and fee sensitivity analysis.
+
+
+1. Introduction
+
+Currency arbitrage exploits inconsistencies in exchange rates to generate profit through cyclic trades such as:
+  EUR -> USD -> CAD -> EUR
+
+If the product of the exchange rates along the cycle exceeds one, the cycle is profitable.
+
+A directed graph representation is natural:
+- Nodes are currencies.
+- A directed edge i -> j exists when an exchange rate R[i,j] > 0 is available.
+- The edge weight is the exchange rate.
+
+
+2. Motivation
+
+Classical search becomes expensive as the number of currencies and cycle length grows. QAOA provides a
+quantum-classical hybrid approach that explores a large solution space using parameterized quantum circuits,
+while a classical optimizer tunes the circuit parameters.
+
+The goal of this work is not to claim quantum advantage at current scales, but to provide:
+- A correct QUBO/Ising model of fixed-length currency cycles
+- A robust QAOA simulation pipeline in Qiskit
+- Classical baselines and diagnostics to validate correctness
+
+
+3. Dataset (matrix format)
+
+Input data is stored in:
+  data/Data-sheet-New.csv (and data/Data-sheet-New.txt)
+
+Format:
+- The first row and first column contain currency labels.
+- The entry R[i,j] is the exchange rate from row currency i to column currency j.
+- R[i,j] = 0 indicates that a direct conversion is not available and is treated as an invalid transition.
+
+Default dataset size:
+- N = 14 currencies
+- Example currencies: EUR, USD, GBP, CAD, CHF, JPY, AUD, CZK, HUF, NZD, SEK, SGD, DKK, NOK
+
+
+4. Problem Statement and Formulation (position-based fixed cycle length)
+
+We solve for a trading cycle of fixed length L (where 2 <= L <= N).
+
+Decision variables (position-based encoding):
+- For each position p in {0, ..., L-1} and currency index i in {0, ..., N-1}:
+    x[p,i] in {0,1}
+  where x[p,i] = 1 means currency i is chosen at position p in the cycle.
+
+Number of binary variables / qubits:
+- num_variables = N * L
+
+Objective (maximize product of rates by minimizing negative log-return):
+
+A candidate cycle (c0 -> c1 -> ... -> c(L-1) -> c0) has gross return:
+  Gross = Π_{p=0..L-1} R[c_p, c_{(p+1) mod L}]
+
+We maximize this by minimizing:
+  Σ_{p=0..L-1} -log(R[c_p, c_{(p+1) mod L}])
+
+In the position-based encoding, this is implemented using quadratic terms between consecutive positions:
+  Σ_p Σ_i Σ_j (-log(R[i,j])) x[p,i] x[(p+1) mod L, j]
+
+Constraints (encoded as quadratic penalties):
+- Exactly one currency per position:
+    For each p: (Σ_i x[p,i] - 1)^2
+- No repeated currencies across positions:
+    For each currency i: penalize selecting i in multiple positions (pairwise penalty)
+- Valid transitions only:
+    If R[i,j] <= 0 or i == j, selecting i then j is penalized strongly
+
+These penalties produce a QUBO that is then converted to an Ising Hamiltonian for QAOA.
+
+
+5. Methodology: QAOA in Qiskit (team lead’s 6 steps)
+
+We implement QAOA following the team lead’s procedure:
+
+1) Start Everywhere (superposition)
+   - QAOA starts from an equal superposition over all bitstrings.
+
+2) Twist for Profit (cost layer)
+   - Apply the problem unitary derived from the Ising Hamiltonian (parameter gamma).
+
+3) Shake it Up (mixer layer)
+   - Apply the mixer unitary (typically X-rotations, parameter beta).
+
+4) Check Signal (sampling)
+   - Measure and sample bitstrings (candidate solutions).
+
+5) Tune Again (classical optimization)
+   - Use a classical optimizer (COBYLA) to tune gamma/beta parameters by minimizing the expected QUBO
+     energy estimated from samples.
+
+6) Pick Winner
+   - Decode sampled bitstrings into cycles.
+   - Filter to feasible cycles only.
+   - Report:
+     - the most profitable feasible sampled cycle
+     - the most probable feasible sampled cycle
+
+Implementation notes (Qiskit versions used):
+- qiskit 2.3.0
+- qiskit-aer 0.17.2
+- qiskit-optimization 0.7.0
+- qiskit-algorithms 0.4.0
+
+Simulation backend notes:
+- For wide circuits (num_variables > AerSimulator default qubit limit), the notebook automatically configures
+  Aer’s sampler backend to use the matrix_product_state simulation method.
+
+
+6. Experimental Details (default configuration)
+
+Default notebook parameters:
+- N (number_of_currencies) = 14
+- L (trading_cycle_length) = 3
+- num_variables = N * L = 42
+
+QAOA parameters:
+- reps (QAOA layers) = 2
+- shots (final sampling) = 2048
+- maxiter (COBYLA iterations) = 60
+
+Penalty weights (QUBO):
+- penalty_position = 50.0
+- penalty_repeat = 50.0
+- penalty_invalid_edge = 200.0
+
+
+7. Results and Discussion
+
+Classical brute-force baseline (L=3):
+- Best feasible length-3 cycle found in the provided 14x14 matrix:
+    EUR -> USD -> HUF -> EUR
+- Gross return (product of rates):
+    1.0009526828
+- Profit percentage:
+    (gross - 1) * 100 = 0.095268%
+
+Fee sensitivity (break-even per trade fee, L=3):
+- Let f be the per-trade fee rate (applied multiplicatively as (1-f) each trade).
+- Break-even f satisfies:
+    gross * (1-f)^L = 1
+  so:
+    f = 1 - gross^(-1/L)
+- For the best classical cycle above:
+    f ≈ 0.00031736 (about 0.031736% per trade)
+
+QAOA output:
+- QAOA results depend on sampling noise and optimizer settings.
+- The notebook reports both:
+  - the most profitable feasible sampled cycle
+  - the most probable feasible sampled cycle
+
+
+8. Comparison and Analysis
+
+- Classical brute-force over permutations is exact for small N and L but grows as P(N,L) = N!/(N-L)!.
+- QAOA provides a quantum-ready formulation where the cycle search is embedded in a Hamiltonian and
+  explored via quantum sampling.
+- Feasibility constraints are explicit in the QUBO penalties and validated during decoding.
+
+
+9. Runtime and Scaling Notes
+
+The QAOA execution step can take significant time because it runs many circuit evaluations inside a classical
+optimizer loop.
+
+The notebook prints an estimated remaining time during optimization using observed average time per
+objective evaluation. The printed ETA is an estimate (it can change as the optimizer progresses).
+
+Typical ways to reduce runtime:
+- Reduce maxiter
+- Reduce reps
+- Reduce shots
+- Reduce N or L (num_variables = N * L)
+
+
+10. Conclusion
+
+This project demonstrates that currency arbitrage can be modeled as a position-based fixed-length cycle QUBO
+and solved using a QAOA workflow in Qiskit. The notebook is designed to be modular and robust, loading
+exchange rates from a matrix file, enforcing feasibility via penalties, sampling and decoding feasible cycles,
+and validating results with classical baselines.
+
+
+Appendix: Key Code Snippets (high level)
+
+Data file discovery (upward search):
+- Search upward from the working directory for a folder containing the dataset.
+
+QUBO variable mapping:
+- Variables are x[p,i] for positions p and currencies i.
+- Qubit count is N * L.
+
+Cycle decoding:
+- For each position p, exactly one currency must have bit 1.
+- Currency indices must not repeat across positions.
+- Each transition must correspond to a non-zero rate in the matrix.
