@@ -85,6 +85,7 @@ When executed you should see:
 
 Authors
 -------
+Saranya S (2577421)
 Bhuvanesh Kumar (1844341)
 Santhossh J U (1982102)
 Mohammad Yaseen (2160066)
