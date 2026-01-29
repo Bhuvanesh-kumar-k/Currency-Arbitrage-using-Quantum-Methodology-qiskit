@@ -65,7 +65,7 @@ Notes:
 ### Option B — Python script
 Run:
 ```bash
-python "Code Files/Qiskit.py"
+python "Code Files/Qiskit.py" --n 6 --l 3 --reps 1 --shots 200 --maxiter 5 --seed 1"
 ```
 Notes:
 - The script currently contains an **absolute `csv_path`**; update it if your local path differs.
